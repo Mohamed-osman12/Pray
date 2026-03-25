@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>متابعي اليومي | صلاتي وأذكاري</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --secondary: #1565c0;
+            --danger: #d32f2f;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 500px; margin: auto; }
+        h1 { color: var(--primary); text-align: center; }
+        
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h3 { margin-top: 0; border-bottom: 2px solid var(--bg); padding-bottom: 10px; color: #555; }
+
+        .prayer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .btn {
+            border: none;
+            padding: 12px 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            font-size: 0.9em;
+        }
+        .btn-off { background: #eceff1; color: #78909c; }
+        .btn-on { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3); }
+
+        .debt-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .debt-controls { display: flex; align-items: center; gap: 10px; }
+        .count-badge {
+            background: var(--danger);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .dhikr-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 1.1em;
+        }
+        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
+
+        .footer-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-small { flex: 1; padding: 10px; font-size: 0.8em; background: #546e7a; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 وردي اليومي</h1>
+
+    <div class="card">
+        <h3>الصلوات المفروضة</h3>
+        <div class="prayer-grid" id="prayer-buttons">
+            </div>
+    </div>
+
+    <div class="card">
+        <h3>الأذكار اليومية</h3>
+        <div class="dhikr-item">
+            <input type="checkbox" id="chk-morning" onclick="toggleDhikr('morning')">
+            <label for="chk-morning">أذكار الصباح</label>
+        </div>
+        <div class="dhikr-item">
+            <input type="checkbox" id="chk-evening" onclick="toggleDhikr('evening')">
+            <label for="chk-evening">أذكار المساء</label>
+        </div>
+        <div class="debt-item">
+            <span>أذكار بعد الصلاة</span>
+            <div class="debt-controls">
+                <span id="after-prayer-count" class="count-badge" style="background:var(--secondary)">0</span>
+                <button class="btn btn-on" style="padding:5px 15px" onclick="addAfterPrayerDhikr()">+1</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>سجل القضاء (ما فاتك)</h3>
+        <div id="debt-container">
+            </div>
+    </div>
+
+    <div class="footer-btns">
+        <button class="btn btn-small" onclick="requestNotificationPermission()">تفعيل التنبيهات 🔔</button>
+        <button class="btn btn-small" onclick="simulateNewDay()">محاكاة يوم جديد 🔄</button>
+    </div>
+</div>
+
+<script>
+    const PRAYERS = ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"];
+    
+    // تحميل البيانات
+    let storage = JSON.parse(localStorage.getItem('muslimDailyData')) || {
+        today: [false, false, false, false, false],
+        debts: { "الفجر": 0, "الظهر": 0, "العصر": 0, "المغرب": 0, "العشاء": 0 },
+        adhkar: { morning: false, evening: false, afterPrayer: 0 }
+    };
+
+    function render() {
+        // رسم أزرار الصلاة
+        const pContainer = document.getElementById('prayer-buttons');
+        pContainer.innerHTML = '';
+        PRAYERS.forEach((name, i) => {
+            const status = storage.today[i];
+            pContainer.innerHTML += `
+                <button class="btn ${status ? 'btn-on' : 'btn-off'}" onclick="togglePrayer(${i})">
+                    ${name} ${status ? '✓' : ''}
+                </button>`;
+        });
+
+        // رسم الأذكار
+        document.getElementById('chk-morning').checked = storage.adhkar.morning;
+        document.getElementById('chk-evening').checked = storage.adhkar.evening;
+        document.getElementById('after-prayer-count').innerText = storage.adhkar.afterPrayer;
+
+        // رسم الفوائت
+        const dContainer = document.getElementById('debt-container');
+        dContainer.innerHTML = '';
+        for (let p in storage.debts) {
+            if(storage.debts[p] >= 0) {
+                dContainer.innerHTML += `
+                <div class="debt-item">
+                    <span>صلاة ${p}</span>
+                    <div class="debt-controls">
+                        <span class="count-badge">${storage.debts[p]}</span>
+                        <button class="btn btn-off" onclick="changeDebt('${p}', -1)">-1</button>
+                        <button class="btn btn-off" onclick="changeDebt('${p}', 1)">+1</button>
+                    </div>
+                </div>`;
+            }
+        }
+        localStorage.setItem('muslimDailyData', JSON.stringify(storage));
+    }
+
+    function togglePrayer(i) {
+        storage.today[i] = !storage.today[i];
+        if(storage.today[i]) {
+            sendInstantNotification("بارك الله فيك", `تم تسجيل صلاة ${PRAYERS[i]}. لا تنسَ أذكار ما بعد الصلاة.`);
+        }
+        render();
+    }
+
+    function toggleDhikr(type) {
+        storage.adhkar[type] = document.getElementById('chk-' + type).checked;
+        render();
+    }
+
+    function addAfterPrayerDhikr() {
+        if(storage.adhkar.afterPrayer < 5) {
+            storage.adhkar.afterPrayer++;
+            render();
+        }
+    }
+
+    function changeDebt(prayer, val) {
+        storage.debts[prayer] = Math.max(0, storage.debts[prayer] + val);
+        render();
+    }
+
+    function simulateNewDay() {
+        if(confirm("هل تريد ترحيل صلوات اليوم غير المكتملة إلى القضاء وابتدأ يوم جديد؟")) {
+            storage.today.forEach((done, i) => {
+                if(!done) storage.debts[PRAYERS[i]]++;
+            });
+            storage.today = [false, false, false, false, false];
+            storage.adhkar = { morning: false, evening: false, afterPrayer: 0 };
+            render();
+        }
+    }
+
+    // --- نظام التنبيهات ---
+    function requestNotificationPermission() {
+        Notification.requestPermission().then(perm => {
+            if(perm === 'granted') alert("التنبيهات تعمل الآن!");
+        });
+    }
+
+    function sendInstantNotification(title, body) {
+        if ('serviceWorker' in navigator && Notification.permission === 'granted') {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972531.png' });
+            });
+        }
+    }
+
+    // تسجيل الـ Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+
+    render();
+</script>
+
+</body>
+</html>
