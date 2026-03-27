@@ -106,6 +106,10 @@
                 <button class="btn btn-on" style="padding:5px 15px" onclick="addAfterPrayerDhikr()">+1</button>
             </div>
         </div>
+        <div class="debt-item" style="font-weight: bold; color: var(--primary);">
+            <span>🎉 أيام إكمال الأذكار الكاملة:</span>
+            <span id="complete-days" class="count-badge" style="background: var(--primary); font-size: 1.1em;">0</span>
+        </div>
     </div>
 
     <div class="card">
@@ -126,7 +130,7 @@
     let storage = JSON.parse(localStorage.getItem('muslimDailyData')) || {
         today: [false, false, false, false, false],
         debts: { "الفجر": 0, "الظهر": 0, "العصر": 0, "المغرب": 0, "العشاء": 0 },
-        adhkar: { morning: false, evening: false, afterPrayer: 0 }
+        adhkar: { morning: false, evening: false, afterPrayer: 0, completeDays: 0, wasComplete: false }
     };
 
     function render() {
@@ -145,6 +149,14 @@
         document.getElementById('chk-morning').checked = storage.adhkar.morning;
         document.getElementById('chk-evening').checked = storage.adhkar.evening;
         document.getElementById('after-prayer-count').innerText = storage.adhkar.afterPrayer;
+        document.getElementById('complete-days').innerText = storage.adhkar.completeDays;
+
+        // تتبع إكمال الأذكار
+        const isComplete = isDhikrComplete();
+        if (isComplete && !storage.adhkar.wasComplete) {
+            storage.adhkar.completeDays++;
+        }
+        storage.adhkar.wasComplete = isComplete;
 
         // رسم الفوائت
         const dContainer = document.getElementById('debt-container');
@@ -162,7 +174,11 @@
                 </div>`;
             }
         }
-        localStorage.setItem('muslimDailyData', JSON.stringify(storage));
+    localStorage.setItem('muslimDailyData', JSON.stringify(storage));
+    }
+
+    function isDhikrComplete() {
+        return storage.adhkar.morning && storage.adhkar.evening && storage.adhkar.afterPrayer >= 5;
     }
 
     function togglePrayer(i) {
@@ -196,7 +212,10 @@
                 if(!done) storage.debts[PRAYERS[i]]++;
             });
             storage.today = [false, false, false, false, false];
-            storage.adhkar = { morning: false, evening: false, afterPrayer: 0 };
+            storage.adhkar.morning = false;
+            storage.adhkar.evening = false;
+            storage.adhkar.afterPrayer = 0;
+            storage.adhkar.wasComplete = false;
             render();
         }
     }
