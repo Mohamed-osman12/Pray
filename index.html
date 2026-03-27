@@ -115,8 +115,7 @@
     </div>
 
     <div class="footer-btns">
-        <button class="btn btn-small" onclick="requestNotificationPermission()">تفعيل التنبيهات 🔔</button>
-        <button class="btn btn-small" onclick="simulateNewDay()">محاكاة يوم جديد 🔄</button>
+        <button class="btn btn-small" onclick="NewDay()">يوم جديد 🔄</button>
     </div>
 </div>
 
@@ -191,7 +190,7 @@
         render();
     }
 
-    function simulateNewDay() {
+    function NewDay() {
         if(confirm("هل تريد ترحيل صلوات اليوم غير المكتملة إلى القضاء وابتدأ يوم جديد؟")) {
             storage.today.forEach((done, i) => {
                 if(!done) storage.debts[PRAYERS[i]]++;
@@ -201,26 +200,15 @@
             render();
         }
     }
-
-    // --- نظام التنبيهات ---
-    function requestNotificationPermission() {
-        Notification.requestPermission().then(perm => {
-            if(perm === 'granted') alert("التنبيهات تعمل الآن!");
-        });
-    }
-
     function sendInstantNotification(title, body) {
-        if ('serviceWorker' in navigator && Notification.permission === 'granted') {
-            navigator.serviceWorker.ready.then(reg => {
-                reg.showNotification(title, { body, icon: 'https://cdn-icons-png.flaticon.com/512/2972/2972531.png' });
-            });
-        }
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body });
     }
+    }
+    // طلب الإذن عند التحميل
+    if ('Notification' in window) Notification.requestPermission();
 
-    // تسجيل الـ Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
+
 
     render();
 </script>
