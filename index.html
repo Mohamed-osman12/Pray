@@ -20,7 +20,7 @@
             color: #333;
         }
         .container { max-width: 500px; margin: auto; }
-        h1 { color: var(--primary); text-align: center; }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 20px; }
         
         .card {
             background: var(--card-bg);
@@ -47,35 +47,94 @@
             font-size: 0.9em;
         }
         .btn-off { background: #eceff1; color: #78909c; }
-        .btn-on { background: var(--primary); color: white; box-shadow: 0 4px 8px rgba(46, 125, 50, 0.3); }
+        .btn-on { background: var(--primary); color: white; }
 
         .debt-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
+            padding: 12px 10px;
+            background: #fff;
             border-bottom: 1px solid #eee;
+            margin-bottom: 5px;
+            border-radius: 8px;
         }
-        .debt-controls { display: flex; align-items: center; gap: 10px; }
+        .debt-controls { display: flex; align-items: center; gap: 8px; }
         .count-badge {
             background: var(--danger);
             color: white;
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-size: 0.9em;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-weight: bold;
         }
 
-        .dhikr-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .sleep-reminder {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 15px;
+            border: 1px solid #ffe0b2;
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: var(--card-bg);
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .dhikr-box {
+            padding: 12px;
+            background: #f1f8e9;
+            border-right: 4px solid var(--primary);
+            margin: 10px 0;
+            white-space: pre-line;
+            font-size: 0.95em;
+        }
+        /* صندوق التمرير للأذكار */
+        .dhikr-scroll-box {
             margin: 15px 0;
-            font-size: 1.1em;
+            padding: 15px;
+            background: #f1f8e9;
+            border-right: 5px solid var(--primary);
+            border-radius: 8px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
         }
-        input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
 
-        .footer-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-small { flex: 1; padding: 10px; font-size: 0.8em; background: #546e7a; color: white; }
+        .dhikr-content {
+            max-height: 100px;    /* أقصى طول للصندوق قبل ظهور التمرير */
+            overflow-y: auto;     /* تفعيل التمرير العمودي */
+            white-space: pre-line; /* للحفاظ على ترتيب الأسطر */
+            font-size: 0.95em;
+            line-height: 1.6;
+            padding-left: 10px;    /* مساحة بسيطة لجهة اليسار */
+            margin-top: 10px;
+        }
+
+        /* تحسين شكل شريط التمرير */
+        .dhikr-content::-webkit-scrollbar {
+            width: 5px;
+        }
+        .dhikr-content::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+
     </style>
 </head>
 <body>
@@ -85,151 +144,248 @@
 
     <div class="card">
         <h3>الصلوات المفروضة</h3>
-        <div class="prayer-grid" id="prayer-buttons">
-            </div>
+        <div class="prayer-grid" id="prayer-buttons"></div>
     </div>
 
     <div class="card">
         <h3>الأذكار اليومية</h3>
-        <div class="dhikr-item">
-            <input type="checkbox" id="chk-morning" onclick="toggleDhikr('morning')">
-            <label for="chk-morning">أذكار الصباح</label>
+        <div style="margin-bottom:10px;">
+            <input type="checkbox" id="chk-morning" onchange="toggleDhikr('morning')"> أذكار الصباح
         </div>
-        <div class="dhikr-item">
-            <input type="checkbox" id="chk-evening" onclick="toggleDhikr('evening')">
-            <label for="chk-evening">أذكار المساء</label>
+        <div>
+            <input type="checkbox" id="chk-evening" onchange="toggleDhikr('evening')"> أذكار المساء
         </div>
-        <div class="debt-item">
-            <span>أذكار بعد الصلاة</span>
-            <div class="debt-controls">
-                <span id="after-prayer-count" class="count-badge" style="background:var(--secondary)">0</span>
-                <button class="btn btn-on" style="padding:5px 15px" onclick="addAfterPrayerDhikr()">+1</button>
-            </div>
-        </div>
-        <div class="debt-item" style="font-weight: bold; color: var(--primary);">
-            <span>🎉 أيام إكمال الأذكار الكاملة:</span>
-            <span id="complete-days" class="count-badge" style="background: var(--primary); font-size: 1.1em;">0</span>
-        </div>
+        <div id="sleep-reminder" class="sleep-reminder">🌙 لا تنسَ أذكار النوم</div>
     </div>
 
     <div class="card">
-        <h3>سجل القضاء (ما فاتك)</h3>
-        <div id="debt-container">
+        <h3>سجل القضاء (الفائتة)</h3>
+        <div id="debt-list">
             </div>
     </div>
 
-    <div class="footer-btns">
-        <button class="btn btn-small" onclick="NewDay()">يوم جديد 🔄</button>
+    <button class="btn btn-off" style="width:100%; padding:15px; background:#455a64; color:white;" onclick="handleNewDay()">يوم جديد 🔄</button>
+</div>
+
+<div id="prayer-modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modal-title"></h3>
+        <div id="modal-content-area"></div>
+        <button class="btn btn-on" style="width:100%; margin-top:20px; padding:15px;" onclick="markDone()">✅ تم الأداء والذكر</button>
+        <button onclick="closeModal()" style="position:absolute; top:10px; left:15px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
     </div>
 </div>
 
 <script>
     const PRAYERS = ["الفجر", "الظهر", "العصر", "المغرب", "العشاء"];
+    const AZKAR_FULL = {
+    morning: `* قراءة آية الكرسي: {الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السماوات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السماوات والأرض ولا يؤده حفظهما وهو العلي العظيم} (البقرة:255)، رواه الحاكم وابن حبان.
+
+* أصبحنا على فطرة الإسلام وكلِمة الإخلاص، ودين نبينا محمد صلى الله عليه وسلم، ومِلَّةِ أبينا إبراهيم، حنيفاً مسلماً، وما كان من المشركين. رواه أحمد.
+
+* رضيت بالله ربا، وبالإسلام دينا، وبمحمد صلى الله عليه وسلم نبياً. رواه أصحاب السنن.
+
+* اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً. رواه ابن ماجه.
+
+* اللهم بك أصبحنا، وبك أمسينا، وبك نحيا، وبك نموت، وإليك النشور. رواه أصحاب السنن عدا النسائي.
+
+* لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، وهو على كل شيء قدير. رواه البزار والطبراني في "الدعاء".
+
+* يا حيُّ يا قيوم برحمتك أستغيثُ، أصلح لي شأني كله، ولا تَكلني إلى نفسي طَرْفَةَ عين أبدًا. رواه البزار.
+
+* اللهم أنت ربي، لا إله إلا أنت، خلقتني وأنا عبدُك, وأنا على عهدِك ووعدِك ما استطعتُ، أعوذ بك من شر ما صنعتُ، أبوءُ لَكَ بنعمتكَ عَلَيَّ، وأبوء بذنبي، فاغفر لي، فإنه لا يغفرُ الذنوب إلا أنت. رواه البخاري.
+
+* اللهم فاطر السموات والأرض، عالم الغيب والشهادة، رب كل شيء ومليكه، أشهد أن لا إله إلا أنت, أعوذ بك من شرّ نفسي، ومن شرّ الشيطان وشركه، وأن أقترف على نفسي سوءا، أو أجره إلى مسلم. رواه الترمذي.
+
+* أصبحنا وأصبح الملك لله، والحمد لله ولا إله إلا الله وحده لا شريك له، له الملك وله الحمد، وهو على كل شيء قدير، أسألك خير ما في هذا اليوم، وخير ما بعده، وأعوذ بك من شر هذا اليوم، وشر ما بعده، وأعوذ بك من الكسل وسوء الكبر، وأعوذ بك من عذاب النار وعذاب القبر. رواه مسلم.
+
+* اللهم إني أسألك العفو والعافية في الدنيا والآخرة، اللهم أسألك العفو والعافية في ديني ودنياي وأهلي ومالي، اللهم استر عوراتي، وآمن روعاتي، واحفظني من بين يدي، ومن خلفي، وعن يميني، وعن شمالي، ومن فوقي، وأعوذ بك أن أغتال من تحتي. رواه أبو داود وابن ماجه.
+
+* بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء، وهو السميع العليم. (ثلاث مرات). رواه أصحاب السنن عدا النسائي.
+
+* سبحان الله عدد خلقه، سبحان الله رضا نفسه، سبحان الله زنة عرشه، سبحان الله مداد كلماته. (ثلاث مرات). رواه مسلم.
+
+* اللهم عافني في بدني، اللهم عافني في سمعي، اللهم عافني في بصري، لا إله إلا أنت، اللهم إني أعوذ بك من الكفر والفقر، اللهم إني أعوذ بك من عذاب القبر، لا إله إلا أنت. (ثلاث مرات). رواه أبو داود.
+
+* قراءة سور: الإخلاص، والفلق، والناس. ثلاث مرّات. رواه الترمذي.
+
+* {حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم} (التوبة:129). (سبع مرات). رواه أبو داود.
+
+* اللهم إني أصبحت، أُشهدك وأُشهد حملة عرشك وملائكتك وجميع خلقك أنك أنت الله، وحدك لا شريك لك وأن محمداً عبدك ورسولك. (أربع مرات). أبو داود والترمذي.
+
+* لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، يحيي ويميت، وهو على كل شيء قدير. (عشر مرات). رواه ابن حبان.
+
+* سبحان الله وبحمده. أو: سبحان الله العظيم وبحمده. (مائة مرة أو أكثر). رواه مسلم.
+
+* أستغفر الله. (مائة مرة). رواه ابن أبي شيبة.
+
+* سبحان الله، والحمد لله، والله أكبر, لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، وهوعلى كل شيء قدير. (مائة مرّةٍ أو أكثر). رواه الترمذي.
+`,
+    evening: `* قراءة آية الكرسي: {الله لا إله إلا هو الحي القيوم لا تأخذه سنة ولا نوم له ما في السماوات وما في الأرض من ذا الذي يشفع عنده إلا بإذنه يعلم ما بين أيديهم وما خلفهم ولا يحيطون بشيء من علمه إلا بما شاء وسع كرسيه السماوات والأرض ولا يؤده حفظهما وهو العلي العظيم} (البقرة:255). رواه الحاكم وابن حبان.
+
+* أمسينا على فطرة الإسلام وكلِمة الإخلاص، ودين نبينا محمد صلى الله عليه وسلم، ومِلَّةِ أبينا إبراهيم، حنيفاً مسلماً، وما كان من المشركين. رواه أحمد.
+
+* رضيت بالله ربا، وبالإسلام دينا، وبمحمد صلى الله عليه وسلم نبياً. رواه أصحاب السنن.
+
+* اللهم بك أمسينا، وبك أصبحنا، وبك نحيا، وبك نموت، وإليك المصير. رواه أصحاب السنن عدا النسائي.
+
+* لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، وهو على كل شيء قدير. رواه البزار والطبراني في "الدعاء".
+
+* يا حيُّ يا قيوم برحمتك أستغيثُ، أصلح لي شأني كله، ولا تَكلني إلى نفسي طَرْفَةَ عين أبدًا. رواه البزار.
+
+* اللهم أنت ربي، لا إله إلا أنت، خلقتني وأنا عبدُك, وأنا على عهدِك ووعدِك ما استطعتُ، أعوذ بك من شر ما صنعتُ، أبوءُ لَكَ بنعمتكَ عَلَيَّ، وأبوء بذنبي، فاغفر لي، فإنه لا يغفرُ الذنوب إلا أنت. رواه البخاري.
+
+* اللهم فاطر السموات والأرض، عالم الغيب والشهادة، رب كل شيء ومليكه، أشهد أن لا إله إلا أنت, أعوذ بك من شرّ نفسي، ومن شرّ الشيطان وشركه، وأن أقترف على نفسي سوءا، أو أجرُّه إلى مسلم. رواه الترمذي.
+
+*أمسينا وأمسى الملك لله، والحمد لله، لا إله إلا الله وحده لا شريك له، اللهم إني أسألك من خير ما في هذه الليلة، وخير ما بعدها، اللهم إني أعوذ بك من شر هذه الليلة وشر ما بعدها، اللهم إني أعوذ بك من الكسل وسوء الكبر، وأعوذ بك من عذاب في النار وعذاب في القبر. رواه مسلم.
+
+* اللهم إني أسألك العفو والعافية في الدنيا والآخرة، اللهم أسألك العفو والعافية في ديني ودنياي وأهلي ومالي، اللهم استر عوراتي، وآمن روعاتي، واحفظني من بين يدي، ومن خلفي، وعن يميني، وعن شمالي، ومن فوقي، وأعوذ بك أن أغتال من تحتي. رواه أبو داود وابن ماجه.
+
+* بسم الله الذي لا يضر مع اسمه شيء في الأرض ولا في السماء، وهو السميع العليم. (ثلاث مرات). رواه أصحاب السنن عدا النسائي.
+
+* أعوذ بكلمات الله التامَّات من شر ما خلق. (ثلاث مرات). رواه مسلم.
+
+* اللهم عافني في بدني، اللهم عافني في سمعي، اللهم عافني في بصري، لا إله إلا أنت، اللهم إني أعوذ بك من الكفر والفقر، اللهم إني أعوذ بك من عذاب القبر، لا إله إلا أنت. (ثلاث مرات). رواه أبو داود.
+
+*قراءة سور: الإخلاص، والفلق، والناس. (ثلاث مرّات). رواه الترمذي.
+
+* قوله تعالى: {حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم} (التوبة:129). (سبع مرات). رواه أبو داود.
+
+* اللهم إني أمسيت أُشهدك، وأُشهد حملة عرشك، وملائكتك وجميع خلقك، أنك أنت الله، وحدك لا شريك لك، وأن محمداً عبدك ورسولك. (أربع مرات). رواه أبو داود والترمذي.
+
+* لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، يحيي ويميت، وهو على كل شيء قدير. (عشر مرات). رواه ابن حبان.
+
+* سبحان الله وبحمده. أو: سبحان الله العظيم وبحمده. (مائة مرة أو أكثر). رواه مسلم.
+
+* أستغفر الله. (مائة مرة). رواه ابن أبي شيبة.
+
+* سبحان الله، والحمد لله، والله أكبر, لا إله إلا الله وحده، لا شريك له، له الملك، وله الحمد، وهوعلى كل شيء قدير. (مائة مرة أو أكثر). رواه الترمذي.`,
+    afterPrayer: `الاستغفار والسلام: "أَسْتَغْفِرُ اللهَ" (ثلاثاً)، ثم "اللَّهُمَّ أَنْتَ السَّلاَمُ، وَمِنْكَ السَّلاَمُ، تَبَارَكْتَ يَا ذَا الْجَلاَلِ وَالإِكْرَامِ".
+التوحيد: "لاَ إِلَهَ إِلاَّ اللهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ. اللَّهُمَّ لاَ مَانِعَ لِمَا أَعْطَيْتَ، وَلاَ مُعْطِيَ لِمَا مَنَعْتَ، وَلاَ يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ".
+التسبيح والتحميد والتكبير: "سُبْحَانَ اللهِ" (33 مرة)، "الحَمْدُ للهِ" (33 مرة)، "اللهُ أَكْبَرُ" (33 مرة)، وإتمام المائة بـ "لاَ إِلَهَ إِلاَّ اللهُ وَحْدَهُ لاَ شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ".
+قراءة آية الكرسي: ﴿اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۚ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ﴾.
+المعوذات: قراءة سورة الإخلاص، والفلق، والناس (مرة واحدة بعد الظهر والعصر والعشاء، و3 مرات بعد المغرب والفجر).
+دعاء طلب العون: "اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ". 
+أذكار خاصة:
+    بعد الفجر والمغرب: "اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ" (7 مرات).
+    بعد الفجر والمغرب: "لا إلهَ إلاّ اللّهُ وحدَهُ لا شريكَ لهُ، لهُ المُلكُ ولهُ الحَمْد، يُحيي وَيُميتُ وهُوَ على كُلّ شيءٍ قدير" (10 مرات). `
+    };
     
-    // تحميل البيانات
-    let storage = JSON.parse(localStorage.getItem('muslimDailyData')) || {
+    // استعادة البيانات أو إنشاء بيانات جديدة
+    let db = JSON.parse(localStorage.getItem('muslimDailyData')) || {
         today: [false, false, false, false, false],
         debts: { "الفجر": 0, "الظهر": 0, "العصر": 0, "المغرب": 0, "العشاء": 0 },
-        adhkar: { morning: false, evening: false, afterPrayer: 0, completeDays: 0, wasComplete: false }
+        adhkar: { morning: false, evening: false }
     };
 
-    function render() {
-        // رسم أزرار الصلاة
-        const pContainer = document.getElementById('prayer-buttons');
-        pContainer.innerHTML = '';
+    let selectedIdx = -1;
+
+    function updateUI() {
+        // 1. تحديث أزرار الصلوات
+        const btnContainer = document.getElementById('prayer-buttons');
+        btnContainer.innerHTML = '';
         PRAYERS.forEach((name, i) => {
-            const status = storage.today[i];
-            pContainer.innerHTML += `
-                <button class="btn ${status ? 'btn-on' : 'btn-off'}" onclick="togglePrayer(${i})">
-                    ${name} ${status ? '✓' : ''}
-                </button>`;
+            const isDone = db.today[i];
+            btnContainer.innerHTML += `<button class="btn ${isDone ? 'btn-on' : 'btn-off'}" onclick="openPrayer(${i})">${name} ${isDone ? '✓' : ''}</button>`;
         });
 
-        // رسم الأذكار
-        document.getElementById('chk-morning').checked = storage.adhkar.morning;
-        document.getElementById('chk-evening').checked = storage.adhkar.evening;
-        document.getElementById('after-prayer-count').innerText = storage.adhkar.afterPrayer;
-        document.getElementById('complete-days').innerText = storage.adhkar.completeDays;
-
-        // تتبع إكمال الأذكار
-        const isComplete = isDhikrComplete();
-        if (isComplete && !storage.adhkar.wasComplete) {
-            storage.adhkar.completeDays++;
-        }
-        storage.adhkar.wasComplete = isComplete;
-
-        // رسم الفوائت
-        const dContainer = document.getElementById('debt-container');
-        dContainer.innerHTML = '';
-        for (let p in storage.debts) {
-            if(storage.debts[p] >= 0) {
-                dContainer.innerHTML += `
-                <div class="debt-item">
-                    <span>صلاة ${p}</span>
-                    <div class="debt-controls">
-                        <span class="count-badge">${storage.debts[p]}</span>
-                        <button class="btn btn-off" onclick="changeDebt('${p}', -1)">-1</button>
-                        <button class="btn btn-off" onclick="changeDebt('${p}', 1)">+1</button>
-                    </div>
-                </div>`;
+        // 2. تحديث سجل القضاء (هنا كان الخطأ)
+        const debtContainer = document.getElementById('debt-list');
+        debtContainer.innerHTML = '';
+        let hasDebts = false;
+        
+        for (const prayerName of PRAYERS) {
+            const count = db.debts[prayerName] || 0;
+            if (count > 0) {
+                hasDebts = true;
+                debtContainer.innerHTML += `
+                    <div class="debt-item">
+                        <span>صلاة ${prayerName}</span>
+                        <div class="debt-controls">
+                            <span class="count-badge">${count}</span>
+                            <button class="btn btn-off" style="padding:2px 10px;" onclick="modDebt('${prayerName}', -1)">-1</button>
+                            <button class="btn btn-off" style="padding:2px 10px;" onclick="modDebt('${prayerName}', 1)">+1</button>
+                        </div>
+                    </div>`;
             }
         }
-    localStorage.setItem('muslimDailyData', JSON.stringify(storage));
+        if (!hasDebts) debtContainer.innerHTML = '<p style="text-align:center; color:#999;">لا توجد صلوات فائتة حالياً</p>';
+
+        // 3. تحديث الأذكار وتنبيه النوم
+        document.getElementById('chk-morning').checked = db.adhkar.morning;
+        document.getElementById('chk-evening').checked = db.adhkar.evening;
+        document.getElementById('sleep-reminder').style.display = db.today[4] ? 'block' : 'none';
+
+        // 4. حفظ البيانات
+        localStorage.setItem('muslimDailyData', JSON.stringify(db));
     }
 
-    function isDhikrComplete() {
-        return storage.adhkar.morning && storage.adhkar.evening && storage.adhkar.afterPrayer >= 5;
-    }
-
-    function togglePrayer(i) {
-        storage.today[i] = !storage.today[i];
-        if(storage.today[i]) {
-            sendInstantNotification("بارك الله فيك", `تم تسجيل صلاة ${PRAYERS[i]}. لا تنسَ أذكار ما بعد الصلاة.`);
+    function openPrayer(idx) {
+        selectedIdx = idx;
+        document.getElementById('modal-title').innerText = "أذكار صلاة " + PRAYERS[idx];
+        
+        // إنشاء محتوى النافذة
+        let html = `
+            <div class="dhikr-scroll-box">
+                <b style="color:var(--primary)">📿 أذكار ما بعد الصلاة:</b>
+                <div class="dhikr-content">${AZKAR_FULL.afterPrayer}</div>
+            </div>`;
+        
+        // إضافة أذكار الصباح مع الفجر (idx 0)
+        if (idx === 0) {
+            html += `
+            <div class="dhikr-scroll-box" style="border-right-color: #fbc02d; background: #fffde7;">
+                <b style="color:#f9a825">☀️ أذكار الصباح كاملة:</b>
+                <div class="dhikr-content">${AZKAR_FULL.morning}</div>
+            </div>`;
         }
-        render();
-    }
-
-    function toggleDhikr(type) {
-        storage.adhkar[type] = document.getElementById('chk-' + type).checked;
-        render();
-    }
-
-    function addAfterPrayerDhikr() {
-        if(storage.adhkar.afterPrayer < 5) {
-            storage.adhkar.afterPrayer++;
-            render();
+        
+        // إضافة أذكار المساء مع العصر (idx 2) أو المغرب (idx 3) حسب تفضيلك
+        if (idx === 2) { 
+            html += `
+            <div class="dhikr-scroll-box" style="border-right-color: #5c6bc0; background: #e8eaf6;">
+                <b style="color:#3f51b5">🌙 أذكار المساء كاملة:</b>
+                <div class="dhikr-content">${AZKAR_FULL.evening}</div>
+            </div>`;
         }
+        
+        document.getElementById('modal-content-area').innerHTML = html;
+        document.getElementById('prayer-modal').style.display = 'block';
     }
 
-    function changeDebt(prayer, val) {
-        storage.debts[prayer] = Math.max(0, storage.debts[prayer] + val);
-        render();
+    function markDone() {
+        db.today[selectedIdx] = true;
+        if (selectedIdx === 0) db.adhkar.morning = true;
+        if (selectedIdx === 2) db.adhkar.evening = true;
+        closeModal();
+        updateUI();
     }
 
-    function NewDay() {
-        if(confirm("هل تريد ترحيل صلوات اليوم غير المكتملة إلى القضاء وابتدأ يوم جديد؟")) {
-            storage.today.forEach((done, i) => {
-                if(!done) storage.debts[PRAYERS[i]]++;
+    function modDebt(name, val) {
+        db.debts[name] = Math.max(0, db.debts[name] + val);
+        updateUI();
+    }
+
+    function handleNewDay() {
+        if (confirm("هل تريد ترحيل صلوات اليوم التي لم تُصلَّى إلى سجل القضاء؟")) {
+            db.today.forEach((done, i) => {
+                if (!done) db.debts[PRAYERS[i]]++;
             });
-            storage.today = [false, false, false, false, false];
-            storage.adhkar.morning = false;
-            storage.adhkar.evening = false;
-            storage.adhkar.afterPrayer = 0;
-            storage.adhkar.wasComplete = false;
-            render();
+            db.today = [false, false, false, false, false];
+            db.adhkar = { morning: false, evening: false };
+            updateUI();
         }
     }
-    function sendInstantNotification(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body });
-    }
-    }
-    // طلب الإذن عند التحميل
-    if ('Notification' in window) Notification.requestPermission();
+
+    function closeModal() { document.getElementById('prayer-modal').style.display = 'none'; }
+    function toggleDhikr(type) { db.adhkar[type] = document.getElementById('chk-' + type).checked; updateUI(); }
+
+    window.onclick = (e) => { if(e.target.className === 'modal') closeModal(); }
 
 
-
-    render();
+    
+    // تشغيل العرض لأول مرة
+    updateUI();
 </script>
 
 </body>
