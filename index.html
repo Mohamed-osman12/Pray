@@ -80,6 +80,40 @@
             display: none;
         }
 
+        .mreminder {
+            background: #fff3e0;
+            color: rgb(251, 192, 45);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #ffe0b2;
+            display: block;
+        }
+        .ereminder {
+            color: rgb(92, 107, 192);
+            background: rgb(232, 234, 246);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #b2b8ff;
+            display: block;
+        }
+
+        .areminder {
+            color: rgb(92, 192, 130);
+            background: rgb(232, 246, 240);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid #b2ffde;
+            display: block;
+        }
+
+
+
         .modal {
             display: none;
             position: fixed;
@@ -135,6 +169,10 @@
             border-radius: 10px;
         }
 
+        .h{
+            display: none;
+        }
+
     </style>
 </head>
 <body>
@@ -149,12 +187,16 @@
 
     <div class="card">
         <h3>الأذكار اليومية</h3>
-        <div style="margin-bottom:10px;">
+        <!-- <div style="margin-bottom:10px;">
             <input type="checkbox" id="chk-morning" onchange="toggleDhikr('morning')"> أذكار الصباح
-        </div>
-        <div>
+        </div> -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px;">
+        <button id="openModalBtnm" class="open-button mreminder">أذكار الصباح</button>
+        <button id="openModalBtne" class="open-button ereminder">أذكار المساء</button></div>
+        <!-- <div>
             <input type="checkbox" id="chk-evening" onchange="toggleDhikr('evening')"> أذكار المساء
-        </div>
+        </div> -->
+        <div id="areminder" class="areminder">لا تنسَ ذكر اللّه</div>
         <div id="sleep-reminder" class="sleep-reminder">🌙 لا تنسَ أذكار النوم</div>
     </div>
 
@@ -173,6 +215,14 @@
         <div id="modal-content-area"></div>
         <button class="btn btn-on" style="width:100%; margin-top:20px; padding:15px;" onclick="markDone()">✅ تم الأداء والذكر</button>
         <button onclick="closeModal()" style="position:absolute; top:10px; left:15px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+    </div>
+</div>
+
+<div id="dhikr-modal" class="modal">
+    <div class="modal-content">
+        <div id="changing-content-area">
+        </div>
+       <button onclick="closeModal()" style="position:absolute; top:10px; left:15px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
     </div>
 </div>
 
@@ -270,6 +320,44 @@
     بعد الفجر والمغرب: "اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ" (7 مرات).
     بعد الفجر والمغرب: "لا إلهَ إلاّ اللّهُ وحدَهُ لا شريكَ لهُ، لهُ المُلكُ ولهُ الحَمْد، يُحيي وَيُميتُ وهُوَ على كُلّ شيءٍ قدير" (10 مرات). `
     };
+
+    function showdhikr(type) {
+        // const content = type === 0 ? AZKAR_FULL.morning : AZKAR_FULL.evening;
+        if (type === 0) {
+            db.adhkar.morning = true;
+            document.getElementById('openModalBtnm').style.display = 'none';
+            document.getElementById('showModalBtn').style.display = 'none';
+            document.getElementById('m-dhikr').style.display = 'block';
+
+        } if (type === 1) {
+            db.adhkar.evening = true;
+            document.getElementById('openModalBtne').style.display = 'none';
+            document.getElementById('showModalBtn').style.display = 'none';
+            document.getElementById('e-dhikr').style.display = 'block';
+        }
+        
+    };
+    document.getElementById('openModalBtnm').addEventListener('click', function() {
+        document.getElementById('changing-content-area').innerHTML = `
+               <div id='m-dhikr' class="dhikr-scroll-box" style="border-right-color: #fbc02d; background: #fffde7;">
+                <b style="color:#f9a825">☀️ أذكار الصباح كاملة:</b>
+                <div class="dhikr-content ">${AZKAR_FULL.morning}</div>
+            <button class="btn btn-on" style="width:100%; margin-top:20px; padding:15px;" onclick="markDhikrDone(0)">✅تم الأداء</button>
+ 
+`;
+    document.getElementById('dhikr-modal').style.display = 'block';
+        
+
+    });
+
+        document.getElementById('openModalBtne').addEventListener('click', function() {
+        document.getElementById('changing-content-area').innerHTML = `
+               <div id='e-dhikr' class="dhikr-scroll-box" style="border-right-color: #5c6bc0; background: #e8eaf6;">
+                <b style="color:#3f51b5">🌙 أذكار المساء كاملة:</b>
+                <div class="dhikr-content ">${AZKAR_FULL.evening}</div>
+            <button class="btn btn-on" style="width:100%; margin-top:20px; padding:15px;" onclick="markDhikrDone(1)">✅تم الأداء</button>`;
+        document.getElementById('dhikr-modal').style.display = 'block';
+    });
     
     // استعادة البيانات أو إنشاء بيانات جديدة
     let db = JSON.parse(localStorage.getItem('muslimDailyData')) || {
@@ -312,12 +400,25 @@
         if (!hasDebts) debtContainer.innerHTML = '<p style="text-align:center; color:#999;">لا توجد صلوات فائتة حالياً</p>';
 
         // 3. تحديث الأذكار وتنبيه النوم
-        document.getElementById('chk-morning').checked = db.adhkar.morning;
-        document.getElementById('chk-evening').checked = db.adhkar.evening;
+        if (db.adhkar.morning === true) document.getElementById('openModalBtnm').style.display = 'none';
+        if (db.adhkar.evening === true) document.getElementById('openModalBtne').style.display = 'none';
         document.getElementById('sleep-reminder').style.display = db.today[4] ? 'block' : 'none';
+
 
         // 4. حفظ البيانات
         localStorage.setItem('muslimDailyData', JSON.stringify(db));
+
+        if (db.adhkar.morning && db.adhkar.evening) {
+
+                document.getElementById('areminder').style.display = 'block';
+            } else {
+                document.getElementById('areminder').style.display = 'none';
+            
+    
+        }
+
+
+        
     }
 
     function openPrayer(idx) {
@@ -333,17 +434,19 @@
         
         // إضافة أذكار الصباح مع الفجر (idx 0)
         if (idx === 0) {
+            if (db.adhkar.morning === false) html += `<button id="showModalBtn" class="open-button mreminder" onclick="showdhikr(0)">أذكار الصباح</button>`;
             html += `
-            <div class="dhikr-scroll-box" style="border-right-color: #fbc02d; background: #fffde7;">
+            <div id='m-dhikr' class="dhikr-scroll-box" style="border-right-color: #fbc02d; background: #fffde7; display:none;">
                 <b style="color:#f9a825">☀️ أذكار الصباح كاملة:</b>
-                <div class="dhikr-content">${AZKAR_FULL.morning}</div>
+                <div class="dhikr-content ">${AZKAR_FULL.morning}</div>
             </div>`;
         }
         
         // إضافة أذكار المساء مع العصر (idx 2) أو المغرب (idx 3) حسب تفضيلك
         if (idx === 2) { 
+            if (db.adhkar.evening === false) html += `<button id="showModalBtn" class="open-button ereminder" onclick="showdhikr(1)">أذكار المساء</button>`;
             html += `
-            <div class="dhikr-scroll-box" style="border-right-color: #5c6bc0; background: #e8eaf6;">
+            <div id='e-dhikr' class="dhikr-scroll-box" style="border-right-color: #5c6bc0; background: #e8eaf6; display:none;" >
                 <b style="color:#3f51b5">🌙 أذكار المساء كاملة:</b>
                 <div class="dhikr-content">${AZKAR_FULL.evening}</div>
             </div>`;
@@ -355,8 +458,20 @@
 
     function markDone() {
         db.today[selectedIdx] = true;
-        if (selectedIdx === 0) db.adhkar.morning = true;
-        if (selectedIdx === 2) db.adhkar.evening = true;
+        closeModal();
+        updateUI();
+    }
+
+    function markDhikrDone(t) {
+        if (t === 0) 
+    {        db.adhkar.morning = true;
+            document.getElementById('openModalBtnm').style.display = 'none';
+        }
+        if (t === 1)
+        {    db.adhkar.evening = true;
+            document.getElementById('openModalBtne').style.display = 'none';
+        }
+        
         closeModal();
         updateUI();
     }
@@ -373,11 +488,16 @@
             });
             db.today = [false, false, false, false, false];
             db.adhkar = { morning: false, evening: false };
+            document.getElementById('openModalBtnm').style.display = 'block';
+            document.getElementById('openModalBtne').style.display = 'block';
             updateUI();
         }
     }
 
-    function closeModal() { document.getElementById('prayer-modal').style.display = 'none'; }
+    function closeModal() { document.getElementById('prayer-modal').style.display = 'none';
+        document.getElementById('dhikr-modal').style.display = 'none';
+     }
+
     function toggleDhikr(type) { db.adhkar[type] = document.getElementById('chk-' + type).checked; updateUI(); }
 
     window.onclick = (e) => { if(e.target.className === 'modal') closeModal(); }
